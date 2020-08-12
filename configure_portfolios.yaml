@@ -1,17 +1,17 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: AWS SC Create a portfolio in Hub/Master and share it with the Prod OU.
+Description: AWS SC Create a portfolio in Hub/Master and share it with the OUs.
 
 Parameters:
   ProdOUToShare:
     Type: String
-    Description: The Prod OU to share the portfolio with. Format - ou-abcd-12345678
+    Description: The Prod OU to share the Prod portfolio with. Format - ou-abcd-12345678
     AllowedPattern: 'ou-[A-Za-z0-9-]{4}-[A-Za-z0-9-]{8}'
     ConstraintDescription: Must start with ou- followed by 4 characters '-' 8 characters
 
   DevOUToShare:
     Type: String
-    Description: The Dev OU to share the portfolio with. Format - ou-abcd-12345678
+    Description: The Dev OU to share the Dev portfolio with. Format - ou-abcd-12345678
     AllowedPattern: 'ou-[A-Za-z0-9-]{4}-[A-Za-z0-9-]{8}'
     ConstraintDescription: Must start with ou- followed by 4 characters '-' 8 characters
 
