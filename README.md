@@ -1,1 +1,1 @@
-# control-tower-for-ml
+create AWS Service Catalog portfolios in the master account: [![button](media/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation#/stacks/new?stackName=ProdOUPortfolioToShare&templateURL=https://s3.amazonaws.com/marketplace-sa-resources/configure_ct_portfolio.yaml)
