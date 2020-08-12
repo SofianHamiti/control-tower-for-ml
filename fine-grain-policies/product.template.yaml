@@ -46,7 +46,7 @@ Resources:
         SageMakerNotebookSubnet: !GetAtt VPC.Outputs.PrivateSubnet
         SageMakerNotebookSecurityGroup: !GetAtt VPC.Outputs.SecurityGroup
         KMSKeyArn: !GetAtt IAM.Outputs.KMSKeyArn
-      TemplateURL: ./templates/sagemaker_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/fine-grain-policies/templates/sagemaker_template.yaml
   #================================================================================
   # IAM ROLE AND KMS ENCRYPTION KEY
   #================================================================================
@@ -58,7 +58,7 @@ Resources:
         ECRRepositoryArn: !GetAtt ECR.Outputs.ContainerRepositoryArn
         DataBucket: !GetAtt S3.Outputs.DataBucket
         ModelBucket: !GetAtt S3.Outputs.ModelBucket
-      TemplateURL: ./templates/iam_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/fine-grain-policies/templates/iam_template.yaml
   #================================================================================
   # S3 BUCKETS - DATA BUCKET AND MODEL BUCKET
   #================================================================================
@@ -68,7 +68,7 @@ Resources:
       Parameters:
         DataBucketName: !Sub ${ProjectName}-data-${AWS::AccountId}
         ModelBucketName: !Sub ${ProjectName}-models-${AWS::AccountId}
-      TemplateURL: ./templates/s3_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/fine-grain-policies/templates/s3_template.yaml
   #================================================================================
   # ECR REPOSITORY
   #================================================================================
@@ -77,7 +77,7 @@ Resources:
     Properties:
       Parameters:
         RepositoryName: !Sub ${ProjectName}-containers
-      TemplateURL: ./templates/ecr_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/fine-grain-policies/templates/ecr_template.yaml
   #================================================================================
   # VPC WITH A PRIVATE SUBNET AND SECURITY GROUP
   #================================================================================
@@ -88,4 +88,4 @@ Resources:
         ProjectName: !Ref ProjectName
         VpcCIDR: !Ref VpcCIDR
         PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
-      TemplateURL: ./templates/vpc_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/fine-grain-policies/templates/vpc_template.yaml

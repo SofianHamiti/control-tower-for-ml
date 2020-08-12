@@ -37,14 +37,14 @@ Resources:
         NotebookInstanceName: !Sub ${ProjectName}-notebooks
         NotebookInstanceType: !Ref NotebookInstanceType
         NotebookInstanceRoleArn: !GetAtt IAM.Outputs.SageMakerNotebookInstanceRoleArn
-      TemplateURL: ./templates/sagemaker_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/managed-policies/templates/sagemaker_template.yaml
   #================================================================================
   # IAM Role
   #================================================================================
   IAM:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./templates/iam_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/managed-policies/templates/iam_template.yaml
   #================================================================================
   # S3 Buckets - data bucket and model bucket
   #================================================================================
@@ -54,7 +54,7 @@ Resources:
       Parameters:
         DataBucketName: !Sub ${ProjectName}-data-${AWS::AccountId}
         ModelBucketName: !Sub ${ProjectName}-models-${AWS::AccountId}
-      TemplateURL: ./templates/s3_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/managed-policies/templates/s3_template.yaml
   #================================================================================
   # ECR Repo
   #================================================================================
@@ -63,4 +63,4 @@ Resources:
     Properties:
       Parameters:
         RepositoryName: !Sub ${ProjectName}-containers
-      TemplateURL: ./templates/ecr_template.yaml
+      TemplateURL: https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/managed-policies/templates/ecr_template.yaml
