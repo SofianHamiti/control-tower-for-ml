@@ -22,23 +22,13 @@ Parameters:
       - ml.m5.2xlarge
       - ml.m5.4xlarge
     ConstraintDescription: Must select a valid notebook instance type.
-    Default: ml.t2.medium
+    Default: ml.t3.medium
     Description: Select Instance type for the SageMaker Notebook
     Type: String
-  VpcCIDR:
-    Description: Please enter the IP range (CIDR notation) for this VPC
-    Type: String
-    Default: 10.192.0.0/16
-  PublicSubnet1CIDR:
-    Description: >-
-      Please enter the IP range (CIDR notation) for the public subnet in the
-      first Availability Zone
-    Type: String
-    Default: 10.192.10.0/24
 
 Resources:
   #================================================================================
-  # SAGEMAKER NOTEBOOK INSTANCE
+  # SageMaker Notebook Instance
   #================================================================================
   SAGEMAKER:
     Type: AWS::CloudFormation::Stack
@@ -47,27 +37,16 @@ Resources:
         NotebookInstanceName: !Sub ${ProjectName}-notebooks
         NotebookInstanceType: !Ref NotebookInstanceType
         NotebookInstanceRoleArn: !GetAtt IAM.Outputs.SageMakerNotebookInstanceRoleArn
-        ECRRepository: !GetAtt ECR.Outputs.ContainerRepository
-        DataBucket: !GetAtt S3.Outputs.DataBucket
-        ModelBucket: !GetAtt S3.Outputs.ModelBucket
-        SageMakerNotebookSubnet: !GetAtt VPC.Outputs.PublicSubnet1
-        SageMakerNotebookSecurityGroup: !GetAtt VPC.Outputs.SecurityGroup
-        KMSKeyArn: !GetAtt KMS.Outputs.KMSKeyArn
       TemplateURL: ./templates/sagemaker_template.yaml
   #================================================================================
-  # IAM ROLE
+  # IAM Role
   #================================================================================
   IAM:
     Type: AWS::CloudFormation::Stack
     Properties:
-      Parameters:
-        ECRRepository: !GetAtt ECR.Outputs.ContainerRepository
-        DataBucket: !GetAtt S3.Outputs.DataBucket
-        ModelBucket: !GetAtt S3.Outputs.ModelBucket
-        KMSKeyArn: !GetAtt KMS.Outputs.KMSKeyArn
       TemplateURL: ./templates/iam_template.yaml
   #================================================================================
-  # S3 BUCKETS - DATA BUCKET AND MODEL BUCKET
+  # S3 Buckets - data bucket and model bucket
   #================================================================================
   S3:
     Type: AWS::CloudFormation::Stack
@@ -77,7 +56,7 @@ Resources:
         ModelBucketName: !Sub ${ProjectName}-models-${AWS::AccountId}
       TemplateURL: ./templates/s3_template.yaml
   #================================================================================
-  # ECR REPOSITORY
+  # ECR Repo
   #================================================================================
   ECR:
     Type: AWS::CloudFormation::Stack
@@ -85,23 +64,3 @@ Resources:
       Parameters:
         RepositoryName: !Sub ${ProjectName}-containers
       TemplateURL: ./templates/ecr_template.yaml
-  #================================================================================
-  # KMS ENCRYPTION KEY
-  #================================================================================
-  KMS:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        NotebookInstanceRoleArn: !GetAtt IAM.Outputs.SageMakerNotebookInstanceRoleArn
-      TemplateURL: ./templates/kms_template.yaml
-  #================================================================================
-  # VPC AND SECURITY GROUPS
-  #================================================================================
-  VPC:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        ProjectName: !Ref ProjectName
-        VpcCIDR: !Ref VpcCIDR
-        PublicSubnet1CIDR: !Ref PublicSubnet1CIDR
-      TemplateURL: ./templates/vpc_template.yaml

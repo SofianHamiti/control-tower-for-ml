@@ -8,15 +8,6 @@ Parameters:
     Type: String
   NotebookInstanceRoleArn:
     Type: String
-  KMSKeyArn:
-    Type: String
-  SageMakerNotebookSubnet:
-    Type: String
-  SageMakerNotebookSecurityGroup:
-    Type: String
-  RootAccess:
-    Type: String
-    Default: Disabled
 
 Resources:
   SageMakerNotebookInstance:
@@ -25,12 +16,7 @@ Resources:
       NotebookInstanceName: !Ref NotebookInstanceName
       InstanceType: !Ref NotebookInstanceType
       RoleArn: !Ref NotebookInstanceRoleArn
-      SecurityGroupIds:
-        - !Ref SageMakerNotebookSecurityGroup
-      SubnetId: !Ref SageMakerNotebookSubnet
-      RootAccess: !Ref RootAccess
       VolumeSizeInGB: 30
-      KmsKeyId: !Ref KMSKeyArn
 
 Outputs:
   SageMakerNotebookInstance:
