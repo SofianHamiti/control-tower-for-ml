@@ -219,9 +219,9 @@ Resources:
               if response['ResponseMetadata']['HTTPStatusCode'] == 200:
                 list_responses.append(200)
             if all(value == 200 for value in list_responses):
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, CustomResourcePhysicalID)
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, None)
             else:
-              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, CustomResourcePhysicalID)
+              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, None)
 
       Handler: index.handler
       Runtime: python3.7
