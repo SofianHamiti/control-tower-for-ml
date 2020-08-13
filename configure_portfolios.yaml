@@ -191,6 +191,8 @@ Resources:
             OrgOuList = get_ou_list()
 
             list_responses = []
+            _ret = {}
+            _ret['Data'] = []
 
             for portId in listOUs.items():
               if OrgShareStatus == 'ENABLED' and listOUs[portId] in OrgOuList and requestType == 'Delete':
@@ -212,12 +214,11 @@ Resources:
               else:
                 LOGGER.error('UNEXPECTED INPUTS - {}.{}.{}'.format(requestType, OrgShareStatus, listOUs[portId]))
 
-              CustomResourcePhysicalID=response['PortfolioShareToken']
-              _ret = {}
-              _ret['Data'] = response
+              _ret['Data'].append(response)
 
               if response['ResponseMetadata']['HTTPStatusCode'] == 200:
                 list_responses.append(200)
+
             if all(value == 200 for value in list_responses):
               cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, None)
             else:
