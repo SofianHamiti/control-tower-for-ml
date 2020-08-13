@@ -50,7 +50,7 @@ Resources:
             LoadTemplateFromURL: !FindInMap [S3RefLinks, ProdOUSCProductTemplate, Location]
 
   ProdOUSageMakerProductAssociation:
-    DependsOn: 
+    DependsOn:
       - ProdOUPortfolio
       - ProdOUSageMakerProduct
     Type: AWS::ServiceCatalog::PortfolioProductAssociation
@@ -118,126 +118,12 @@ Resources:
     Properties:
       Action: 'lambda:InvokeFunction'
       FunctionName: !GetAtt
-        - ProdOUSCOrganizationNodeShareLambda
+        - SCOrganizationNodeShareLambda
         - Arn
       Principal: 'cloudformation.amazonaws.com'
       SourceAccount: !Ref 'AWS::AccountId'
 
-  ProdOUSCOrganizationNodeShareLambda:
-    Type: AWS::Lambda::Function
-    DependsOn: IamRoleLambdaForSC
-    Properties:
-      Code:
-        ZipFile: |
-          import json
-          import boto3
-          import botocore
-          import os
-          import cfnresponse
-          import logging
-          LOGGER = logging.getLogger()
-          LOGGER.setLevel(logging.INFO)
-          sc = boto3.client('servicecatalog')
-          org = boto3.client('organizations')
-
-          def get_orgshare_status():
-            OrgShareStatus = 'DISABLED'
-            try:
-              OrgShareStatus = sc.get_aws_organizations_access_status()['AccessStatus']
-            except Exception as e:
-              LOGGER.error('OrgShare Status Fetch Failed :{}'.format(e))
-            return(OrgShareStatus)
-
-          def get_ou_list():
-            ouList = []
-
-            try:
-              orgRoot = org.list_roots()['Roots'][0]['Id']
-            except Exception as e:
-              LOGGER.error('Unable to find org root: {}'.format(e))
-
-            try:
-              for ou in org.list_organizational_units_for_parent(ParentId=orgRoot)['OrganizationalUnits']:
-                ouList.append(ou['Id'])
-            except Exception as e:
-              LOGGER.error('Error getting the OU List: {}'.format(e))
-            
-            return(ouList)
-
-          def handler(event, context):
-            portId = os.environ.get("PortfolioId")
-            ouToShare = os.environ.get("OuToShare")
-            requestType = event['RequestType']
-            response = {
-              "requestType": event['RequestType'],
-              "PortfolioShareToken": "UNKNOWN",
-              "ResponseMetadata": {
-                "RequestId": 'XXXXZXXZ-ZZXX-XZZZ-ZXZZ-ZZXZXXXZXZZZ',
-                "HTTPStatusCode": 400
-              }
-            }
-
-            OrgShareStatus = get_orgshare_status()
-
-            if OrgShareStatus == 'DISABLED':
-              try:
-                LOGGER.info('Enabling OrgShare')
-                sc.enable_aws_organizations_access()
-              except Exception as e:
-                LOGGER.error('Enabling OrgShare Failed:{}'.format(e))
-                response["errorMessage"] = str(e)
-
-            OrgShareStatus = get_orgshare_status()
-            OrgOuList = get_ou_list()
-
-            if OrgShareStatus == 'ENABLED' and ouToShare in OrgOuList and requestType == 'Delete':
-              try:
-                LOGGER.info('Deletion Initiated:{} - {}'.format(portId, ouToShare))
-                response = sc.delete_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
-                          OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':ouToShare})
-              except Exception as e:
-                LOGGER.error('Deletion Failed :{}'.format(e))
-                response["errorMessage"] = str(e)
-            elif OrgShareStatus == 'ENABLED' and ouToShare in OrgOuList and requestType == 'Create':
-              try:
-                LOGGER.info('Creation Initiated: {} - {}'.format(portId, ouToShare))
-                response = sc.create_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
-                        OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':ouToShare})
-              except Exception as e:
-                LOGGER.error('Creation Failed :{}'.format(e))
-                response["errorMessage"] = str(e)
-            else:
-              LOGGER.error('UNEXPECTED INPUTS - {}.{}.{}'.format(requestType, OrgShareStatus, ouToShare))
-            
-            CustomResourcePhysicalID=response['PortfolioShareToken']
-            _ret = {}
-            _ret['Data'] = response
-
-            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, CustomResourcePhysicalID)
-            else:
-              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, CustomResourcePhysicalID)            
-      Handler: index.handler
-      Runtime: python3.7
-      MemorySize: 128
-      Role: !GetAtt IamRoleLambdaForSC.Arn
-      Timeout: 30
-      Environment:
-        Variables:
-          PortfolioId: !Ref ProdOUPortfolio
-          OuToShare: !Ref ProdOUToShare
-
-  ProdOUTriggerLambda:
-    Type: Custom::TriggerLambda
-    DependsOn:
-      - ProdOUSCOrganizationNodeShareLambda
-      - LambdaExecutePermission
-    Properties:
-      ServiceToken: !GetAtt
-        - ProdOUSCOrganizationNodeShareLambda
-        - Arn
-
-  DevOUSCOrganizationNodeShareLambda:
+  SCOrganizationNodeShareLambda:
     Type: AWS::Lambda::Function
     DependsOn: IamRoleLambdaForSC
     Properties:
@@ -279,58 +165,59 @@ Resources:
             return(ouList)
 
           def handler(event, context):
-            portId = os.environ.get("PortfolioId")
-            ouToShare = os.environ.get("OuToShare")
+            listOUs = os.environ.get("ListOUs")
+            print(listOUs)
             requestType = event['RequestType']
-            response = {
-              "requestType": event['RequestType'],
-              "PortfolioShareToken": "UNKNOWN",
-              "ResponseMetadata": {
-                "RequestId": 'XXXXZXXZ-ZZXX-XZZZ-ZXZZ-ZZXZXXXZXZZZ',
-                "HTTPStatusCode": 400
-              }
-            }
-
-            OrgShareStatus = get_orgshare_status()
-
-            if OrgShareStatus == 'DISABLED':
-              try:
-                LOGGER.info('Enabling OrgShare')
-                sc.enable_aws_organizations_access()
-              except Exception as e:
-                LOGGER.error('Enabling OrgShare Failed:{}'.format(e))
-                response["errorMessage"] = str(e)
-
-            OrgShareStatus = get_orgshare_status()
-            OrgOuList = get_ou_list()
-
-            if OrgShareStatus == 'ENABLED' and ouToShare in OrgOuList and requestType == 'Delete':
-              try:
-                LOGGER.info('Deletion Initiated:{} - {}'.format(portId, ouToShare))
-                response = sc.delete_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
-                          OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':ouToShare})
-              except Exception as e:
-                LOGGER.error('Deletion Failed :{}'.format(e))
-                response["errorMessage"] = str(e)
-            elif OrgShareStatus == 'ENABLED' and ouToShare in OrgOuList and requestType == 'Create':
-              try:
-                LOGGER.info('Creation Initiated: {} - {}'.format(portId, ouToShare))
-                response = sc.create_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
-                        OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':ouToShare})
-              except Exception as e:
-                LOGGER.error('Creation Failed :{}'.format(e))
-                response["errorMessage"] = str(e)
-            else:
-              LOGGER.error('UNEXPECTED INPUTS - {}.{}.{}'.format(requestType, OrgShareStatus, ouToShare))
-
-            CustomResourcePhysicalID=response['PortfolioShareToken']
-            _ret = {}
-            _ret['Data'] = response
-
-            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, CustomResourcePhysicalID)
-            else:
-              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, CustomResourcePhysicalID)
+            return True
+#            response = {
+#              "requestType": event['RequestType'],
+#              "PortfolioShareToken": "UNKNOWN",
+#              "ResponseMetadata": {
+#                "RequestId": 'XXXXZXXZ-ZZXX-XZZZ-ZXZZ-ZZXZXXXZXZZZ',
+#                "HTTPStatusCode": 400
+#              }
+#            }
+#
+#            OrgShareStatus = get_orgshare_status()
+#
+#            if OrgShareStatus == 'DISABLED':
+#              try:
+#                LOGGER.info('Enabling OrgShare')
+#                sc.enable_aws_organizations_access()
+#              except Exception as e:
+#                LOGGER.error('Enabling OrgShare Failed:{}'.format(e))
+#                response["errorMessage"] = str(e)
+#
+#            OrgShareStatus = get_orgshare_status()
+#            OrgOuList = get_ou_list()
+#
+#            if OrgShareStatus == 'ENABLED' and ouToShare in OrgOuList and requestType == 'Delete':
+#              try:
+#                LOGGER.info('Deletion Initiated:{} - {}'.format(portId, ouToShare))
+#                response = sc.delete_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
+#                          OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':ouToShare})
+#              except Exception as e:
+#                LOGGER.error('Deletion Failed :{}'.format(e))
+#                response["errorMessage"] = str(e)
+#            elif OrgShareStatus == 'ENABLED' and ouToShare in OrgOuList and requestType == 'Create':
+#              try:
+#                LOGGER.info('Creation Initiated: {} - {}'.format(portId, ouToShare))
+#                response = sc.create_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
+#                        OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':ouToShare})
+#              except Exception as e:
+#                LOGGER.error('Creation Failed :{}'.format(e))
+#                response["errorMessage"] = str(e)
+#            else:
+#              LOGGER.error('UNEXPECTED INPUTS - {}.{}.{}'.format(requestType, OrgShareStatus, ouToShare))
+#
+#            CustomResourcePhysicalID=response['PortfolioShareToken']
+#            _ret = {}
+#            _ret['Data'] = response
+#
+#            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+#              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, CustomResourcePhysicalID)
+#            else:
+#              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, CustomResourcePhysicalID)
       Handler: index.handler
       Runtime: python3.7
       MemorySize: 128
@@ -338,17 +225,24 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          PortfolioId: !Ref DevOUPortfolio
-          OuToShare: !Ref DevOUToShare
+#          ProdPortfolioId: !Ref ProdOUPortfolio
+#          ProdOuToShare: !Ref ProdOUToShare
+#          DevPortfolioId: !Ref DevOUPortfolio
+#          DevOuToShare: !Ref DevOUToShare
+          ListOUs: !Sub |
+            {
+                "${ProdOUPortfolio}": "${ProdOUToShare}",
+                "${DevOUPortfolio}": "${DevOUToShare}"
+            }
 
-  DevOUTriggerLambda:
+  OUTriggerLambda:
     Type: Custom::TriggerLambda
     DependsOn:
-      - DevOUSCOrganizationNodeShareLambda
+      - SCOrganizationNodeShareLambda
       - LambdaExecutePermission
     Properties:
       ServiceToken: !GetAtt
-        - DevOUSCOrganizationNodeShareLambda
+        - SCOrganizationNodeShareLambda
         - Arn
 
 Outputs:
