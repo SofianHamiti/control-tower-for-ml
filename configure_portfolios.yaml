@@ -194,7 +194,7 @@ Resources:
             _ret = {}
             _ret['Data'] = []
 
-            for portId in listOUs.items():
+            for portId in listOUs:
               if OrgShareStatus == 'ENABLED' and listOUs[portId] in OrgOuList and requestType == 'Delete':
                 try:
                   LOGGER.info('Deletion Initiated:{} - {}'.format(portId, listOUs[portId]))
