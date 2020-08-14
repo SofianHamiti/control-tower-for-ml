@@ -20,9 +20,9 @@ Parameters:
 Mappings:
   S3RefLinks:
     'ProdOUSCProductTemplate':
-      Location: 'https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/fine-grain-policies/product.template.yaml'
+      Location: 'https://aws-mlops-workshop.s3-eu-west-1.amazonaws.com/content/control-tower-blog/fine-grain-policies/product.template.yaml'
     'DevOUSCProductTemplate':
-      Location: 'https://raw.githubusercontent.com/SofianHamiti/control-tower-for-ml/master/managed-policies/product.template.yaml'
+      Location: 'https://aws-mlops-workshop.s3-eu-west-1.amazonaws.com/content/control-tower-blog/managed-policies/product.template.yaml'
 
 Resources:
   ProdOUPortfolio:
