@@ -95,168 +95,171 @@ Resources:
       PortfolioId: !Ref DevOUPortfolio
       ProductId: !Ref DevOUSageMakerProduct
 
-#  IamRoleLambdaForSC:
-#    Type: AWS::IAM::Role
-#    Properties:
-#      AssumeRolePolicyDocument:
-#        Version: 2012-10-17
-#        Statement:
-#          - Effect: Allow
-#            Principal:
-#              Service:
-#                - lambda.amazonaws.com
-#            Action:
-#              - sts:AssumeRole
-#      Path: /
-#      ManagedPolicyArns:
-#        - arn:aws:iam::aws:policy/AWSServiceCatalogAdminFullAccess
-#        - arn:aws:iam::aws:policy/AWSOrganizationsFullAccess
-#        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+  IamRoleLambdaForSC:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSServiceCatalogAdminFullAccess
+        - arn:aws:iam::aws:policy/AWSOrganizationsFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
 
-#  LambdaExecutePermission:
-#    Type: AWS::Lambda::Permission
-#    Properties:
-#      Action: 'lambda:InvokeFunction'
-#      FunctionName: !GetAtt
-#        - SCOrganizationNodeShareLambda
-#        - Arn
-#      Principal: 'cloudformation.amazonaws.com'
-#      SourceAccount: !Ref 'AWS::AccountId'
+  LambdaExecutePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt
+        - SCOrganizationNodeShareLambda
+        - Arn
+      Principal: 'cloudformation.amazonaws.com'
+      SourceAccount: !Ref 'AWS::AccountId'
 
-#  SCOrganizationNodeShareLambda:
-#    Type: AWS::Lambda::Function
-#    DependsOn: IamRoleLambdaForSC
-#    Properties:
-#      Code:
-#        ZipFile: |
-#          import json
-#          import boto3
-#          import botocore
-#          import os
-#          import cfnresponse
-#          import logging
-#          LOGGER = logging.getLogger()
-#          LOGGER.setLevel(logging.INFO)
-#          sc = boto3.client('servicecatalog')
-#          org = boto3.client('organizations')
-#
-#          def get_orgshare_status():
-#            OrgShareStatus = 'DISABLED'
-#            try:
-#              OrgShareStatus = sc.get_aws_organizations_access_status()['AccessStatus']
-#            except Exception as e:
-#              LOGGER.error('OrgShare Status Fetch Failed :{}'.format(e))
-#            return(OrgShareStatus)
-#
-#          def get_ou_list():
-#            ouList = []
-#
-#            try:
-#              orgRoot = org.list_roots()['Roots'][0]['Id']
-#            except Exception as e:
-#              LOGGER.error('Unable to find org root: {}'.format(e))
-#
-#            try:
-#              for ou in org.list_organizational_units_for_parent(ParentId=orgRoot)['OrganizationalUnits']:
-#                ouList.append(ou['Id'])
-#            except Exception as e:
-#              LOGGER.error('Error getting the OU List: {}'.format(e))
-#
-#            return(ouList)
-#
-#          def handler(event, context):
-#            listOUs = json.loads(os.environ.get("ListOUs"))
-#            print(listOUs)
-#            requestType = event['RequestType']
-#            response = {
-#              "requestType": event['RequestType'],
-#              "PortfolioShareToken": "UNKNOWN",
-#              "ResponseMetadata": {
-#                "RequestId": 'XXXXZXXZ-ZZXX-XZZZ-ZXZZ-ZZXZXXXZXZZZ',
-#                "HTTPStatusCode": 400
-#              }
-#            }
-#
-#            OrgShareStatus = get_orgshare_status()
-#
-#            if OrgShareStatus == 'DISABLED':
-#              try:
-#                LOGGER.info('Enabling OrgShare')
-#                sc.enable_aws_organizations_access()
-#              except Exception as e:
-#                LOGGER.error('Enabling OrgShare Failed:{}'.format(e))
-#                response["errorMessage"] = str(e)
-#
-#            OrgShareStatus = get_orgshare_status()
-#            OrgOuList = get_ou_list()
-#
-#            list_responses = []
-#            _ret = {}
-#            _ret['Data'] = []
-#
-#            for portId in listOUs:
-#              if OrgShareStatus == 'ENABLED' and listOUs[portId] in OrgOuList and requestType == 'Delete':
-#                try:
-#                  LOGGER.info('Deletion Initiated:{} - {}'.format(portId, listOUs[portId]))
-#                  response = sc.delete_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
-#                            OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':listOUs[portId]})
-#                except Exception as e:
-#                  LOGGER.error('Deletion Failed :{}'.format(e))
-#                  response["errorMessage"] = str(e)
-#              elif OrgShareStatus == 'ENABLED' and listOUs[portId] in OrgOuList and requestType == 'Create':
-#                try:
-#                  LOGGER.info('Creation Initiated: {} - {}'.format(portId, listOUs[portId]))
-#                  response = sc.create_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
-#                          OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':listOUs[portId]})
-#                except Exception as e:
-#                  LOGGER.error('Creation Failed :{}'.format(e))
-#                  response["errorMessage"] = str(e)
-#              else:
-#                LOGGER.error('UNEXPECTED INPUTS - {}.{}.{}'.format(requestType, OrgShareStatus, listOUs[portId]))
-#
-#              _ret['Data'].append(response)
-#
-#              if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-#                list_responses.append(200)
-#
-#            if all(value == 200 for value in list_responses):
-#              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, None)
-#            else:
-#              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, None)
-#
-#      Handler: index.handler
-#      Runtime: python3.7
-#      MemorySize: 128
-#      Role: !GetAtt IamRoleLambdaForSC.Arn
-#      Timeout: 30
-#      Environment:
-#        Variables:
-#          ListOUs: !Sub |
-#            {
-#                "${ProdOUPortfolio}": "${ProdOUToShare}",
-#                "${DevOUPortfolio}": "${DevOUToShare}"
-#            }
+  SCOrganizationNodeShareLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: IamRoleLambdaForSC
+    Properties:
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import time
+          import botocore
+          import os
+          import cfnresponse
+          import logging
+          LOGGER = logging.getLogger()
+          LOGGER.setLevel(logging.INFO)
+          sc = boto3.client('servicecatalog')
+          org = boto3.client('organizations')
 
-#  OUTriggerLambda:
-#    Type: Custom::TriggerLambda
-#    DependsOn:
-#      - SCOrganizationNodeShareLambda
-#      - LambdaExecutePermission
-#    Properties:
-#      ServiceToken: !GetAtt
-#        - SCOrganizationNodeShareLambda
-#        - Arn
+          def get_orgshare_status():
+            OrgShareStatus = 'DISABLED'
+            try:
+              OrgShareStatus = sc.get_aws_organizations_access_status()['AccessStatus']
+            except Exception as e:
+              LOGGER.error('OrgShare Status Fetch Failed :{}'.format(e))
+            return(OrgShareStatus)
+
+          def get_ou_list():
+            ouList = []
+
+            try:
+              orgRoot = org.list_roots()['Roots'][0]['Id']
+            except Exception as e:
+              LOGGER.error('Unable to find org root: {}'.format(e))
+
+            try:
+              for ou in org.list_organizational_units_for_parent(ParentId=orgRoot)['OrganizationalUnits']:
+                ouList.append(ou['Id'])
+            except Exception as e:
+              LOGGER.error('Error getting the OU List: {}'.format(e))
+
+            return(ouList)
+
+          def handler(event, context):
+            listOUs = json.loads(os.environ.get("ListOUs"))
+            print(listOUs)
+            requestType = event['RequestType']
+            response = {
+              "requestType": event['RequestType'],
+              "PortfolioShareToken": "UNKNOWN",
+              "ResponseMetadata": {
+                "RequestId": 'XXXXZXXZ-ZZXX-XZZZ-ZXZZ-ZZXZXXXZXZZZ',
+                "HTTPStatusCode": 400
+              }
+            }
+
+            OrgShareStatus = get_orgshare_status()
+
+            if OrgShareStatus == 'DISABLED':
+              try:
+                LOGGER.info('Enabling OrgShare')
+                sc.enable_aws_organizations_access()
+              except Exception as e:
+                LOGGER.error('Enabling OrgShare Failed:{}'.format(e))
+                response["errorMessage"] = str(e)
+
+            OrgShareStatus = get_orgshare_status()
+            OrgOuList = get_ou_list()
+
+            list_responses = []
+            _ret = {}
+            _ret['Data'] = []
+
+            for portId in listOUs:
+              if OrgShareStatus == 'ENABLED' and listOUs[portId] in OrgOuList and requestType == 'Delete':
+                try:
+                  LOGGER.info('Deletion Initiated:{} - {}'.format(portId, listOUs[portId]))
+                  response = sc.delete_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
+                            OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':listOUs[portId]})
+                  time.sleep(5)
+                except Exception as e:
+                  LOGGER.error('Deletion Failed :{}'.format(e))
+                  response["errorMessage"] = str(e)
+              elif OrgShareStatus == 'ENABLED' and listOUs[portId] in OrgOuList and requestType == 'Create':
+                try:
+                  LOGGER.info('Creation Initiated: {} - {}'.format(portId, listOUs[portId]))
+                  response = sc.create_portfolio_share(AcceptLanguage='en', PortfolioId=portId, \
+                          OrganizationNode={'Type':'ORGANIZATIONAL_UNIT', 'Value':listOUs[portId]})
+                  time.sleep(5)
+                except Exception as e:
+                  LOGGER.error('Creation Failed :{}'.format(e))
+                  response["errorMessage"] = str(e)
+              else:
+                LOGGER.error('UNEXPECTED INPUTS - {}.{}.{}'.format(requestType, OrgShareStatus, listOUs[portId]))
+
+              _ret['Data'].append(response)
+
+              if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                list_responses.append(200)
+
+            if all(value == 200 for value in list_responses):
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, _ret, None)
+            else:
+              cfnresponse.send(event, context, cfnresponse.FAILED, _ret, None)
+
+      Handler: index.handler
+      Runtime: python3.7
+      MemorySize: 128
+      Role: !GetAtt IamRoleLambdaForSC.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          ListOUs: !Sub |
+            {
+                "${ProdOUPortfolio}": "${ProdOUToShare}",
+                "${DevOUPortfolio}": "${DevOUToShare}"
+            }
+
+  OUTriggerLambda:
+    Type: Custom::TriggerLambda
+    DependsOn:
+      - SCOrganizationNodeShareLambda
+      - LambdaExecutePermission
+    Properties:
+      ServiceToken: !GetAtt
+        - SCOrganizationNodeShareLambda
+        - Arn
 
 Outputs:
   ProdOUPortfolioId:
     Description: Prod OU Portfolio Id
     Value: !Ref ProdOUPortfolio
-#  ProdOUUnitId:
-#    Description: Prod OU Shared
-#    Value: !Ref ProdOUToShare
+  ProdOUUnitId:
+    Description: Prod OU Shared
+    Value: !Ref ProdOUToShare
   DevOUPortfolioId:
     Description: Dev OU Portfolio Id
     Value: !Ref DevOUPortfolio
-#  DevOUUnitId:
-#    Description: Dev OU Shared
-#    Value: !Ref DevOUToShare
+  DevOUUnitId:
+    Description: Dev OU Shared
+    Value: !Ref DevOUToShare
