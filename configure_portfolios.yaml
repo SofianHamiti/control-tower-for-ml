@@ -118,12 +118,12 @@ Resources:
   LambdaExecutePermission:
     Type: AWS::Lambda::Permission
     Properties:
-      Action: 'lambda:InvokeFunction'
+      Action: lambda:InvokeFunction
       FunctionName: !GetAtt
         - SCOrganizationNodeShareLambda
         - Arn
-      Principal: 'cloudformation.amazonaws.com'
-      SourceAccount: !Ref 'AWS::AccountId'
+      Principal: cloudformation.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
 
   SCOrganizationNodeShareLambda:
     Type: AWS::Lambda::Function
