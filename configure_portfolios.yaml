@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Description: AWS SC Create a portfolio in Hub/Master and share it with the OUs.
 
-Parameters:
+#Parameters:
 #  ProdOUToShare:
 #    Type: String
 #    Description: The Prod OU to share the Prod portfolio with. Format - ou-abcd-12345678
